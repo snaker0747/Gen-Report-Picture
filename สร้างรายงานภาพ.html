@@ -1,0 +1,130 @@
+<!DOCTYPE html><html lang="th"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>สร้างรายงานภาพ</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@7.8.2/build/index.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{--bg:#eef0f3;--pn:#fff;--tx:#1f2430;--mu:#6b7280;--bd:#d5d9e0;--ac:#2563eb;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#14161b;--pn:#1d2027;--tx:#e8eaf0;--mu:#9aa1ad;--bd:#343944;--ac:#6ea0ff}}
+:root[data-theme=dark]{--bg:#14161b;--pn:#1d2027;--tx:#e8eaf0;--mu:#9aa1ad;--bd:#343944;--ac:#6ea0ff}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px Sarabun,'TH Sarabun New',sans-serif}
+#app{display:flex;gap:12px;padding:12px;min-height:100vh}
+aside{width:340px;flex:none;background:var(--pn);border:1px solid var(--bd);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 24px);overflow:auto;position:sticky;top:12px}
+h1{font-size:19px;margin:0}
+#drop{border:2px dashed var(--bd);border-radius:8px;padding:16px;text-align:center;color:var(--mu);cursor:pointer}
+#drop.on{border-color:var(--ac);color:var(--ac)}
+.g{display:grid;grid-template-columns:1fr 1fr;gap:8px}.g label{display:flex;flex-direction:column;font-size:12px;color:var(--mu);gap:2px}.g .w{grid-column:1/-1}
+input,select,button{font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:6px;padding:5px 7px;min-width:0}
+button{cursor:pointer}button.p{background:var(--ac);color:#fff;border-color:var(--ac);flex:1}
+.row{display:flex;gap:6px;flex-wrap:wrap}.c{font-size:13px;display:flex;align-items:center;gap:4px}
+#pre button{padding:3px 8px;font-size:13px}#pre button.on{border-color:var(--ac);color:var(--ac)}
+.it{display:flex;align-items:center;gap:6px;border:1px solid var(--bd);border-radius:6px;padding:4px;background:var(--bg)}
+.it img{width:44px;height:44px;object-fit:cover;border-radius:4px;flex:none;cursor:grab}.it input{flex:1}.it b{font-size:12px;color:var(--mu);width:18px;text-align:center}
+.it.ov{outline:2px solid var(--ac)}
+main{flex:1;min-width:0;overflow:auto;display:flex;flex-direction:column;align-items:center;gap:14px;padding-bottom:20px}
+main canvas{box-shadow:0 2px 10px #0004;background:#fff;flex:none}
+@media(max-width:800px){#app{flex-direction:column}aside{width:100%;position:static;max-height:none}}
+.it button{padding:2px 4px;font-size:12px}.sp{border:1px solid var(--ac);border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:6px;font-size:13px}.sp[hidden]{display:none}.sp label{display:flex;gap:6px;align-items:center}.sp input[type=range]{flex:1}main canvas{cursor:crosshair}
+</style></head><body><div id="app">
+<aside>
+<h1>🖼️ สร้างรายงานภาพ</h1>
+<label id="drop">ลากรูปมาวางที่นี่ หรือคลิกเพื่อเลือกรูป<input id="file" type="file" accept="image/*" multiple hidden></label>
+<div class="g">
+<label class="w">หัวเรื่อง (ใส่หัวทุกหน้า)<input id="title" placeholder="เช่น รายงานภาพถ่ายการตรวจรับงาน"></label>
+<label>กระดาษ<select id="paper"><option>A4<option>A3<option>F4<option>Letter</select></label>
+<label>แนวกระดาษ<select id="orient"><option value="p">แนวตั้ง<option value="l">แนวนอน</select></label>
+<label>คอลัมน์<input id="cols" type="number" min="1" max="6" value="2"></label>
+<label>แถว<input id="rows" type="number" min="1" max="8" value="3"></label>
+<label>ขอบกระดาษ (มม.)<input id="margin" type="number" min="5" max="40" value="15"></label>
+<label>ระยะห่างรูป (มม.)<input id="gap" type="number" min="0" max="20" value="4"></label>
+<label>คำบรรยาย<select id="cap"><option value="1">ใต้รูป<option value="0">ไม่มี</select></label>
+<label>ขนาดตัวอักษร (pt)<input id="fs" type="number" min="8" max="24" value="14"></label>
+<label>การวางรูปในช่อง<select id="fit"><option value="fill">เต็มช่อง (ครอป)<option value="fit">เห็นทั้งรูป</select></label>
+<label>ซูมพรีวิว<select id="zoom"><option value="2">เล็ก<option value="3" selected>กลาง<option value="4">ใหญ่</select></label>
+</div>
+<div class="row"><label class="c"><input type="checkbox" id="num" checked>เลขรูป "รูปที่ n"</label><label class="c"><input type="checkbox" id="pg" checked>เลขหน้า</label></div>
+<div><div style="font-size:12px;color:var(--mu);margin-bottom:4px">แพทเทิร์นสำเร็จรูป (คอลัมน์×แถว)</div><div id="pre" class="row"></div></div>
+<div id="sp" class="sp" hidden><b id="spt"></b>
+<label>ลำดับที่<input type="number" id="so" min="1" value="1" style="width:70px"></label>
+<label>ซูม<input type="range" id="sz" min="100" max="500" value="100"></label>
+<label>ซ้าย-ขวา<input type="range" id="sx" min="-100" max="100" value="0"></label>
+<label>บน-ล่าง<input type="range" id="sy" min="-100" max="100" value="0"></label>
+<label>โหมด<select id="sm"><option value="">ตามค่ารวม<option value="fill">เต็มช่อง (ครอป)<option value="fit">เห็นทั้งรูป<option value="stretch">ยืดเต็มช่อง (บิดสัดส่วน)</select></label>
+<div style="color:var(--mu);font-size:12px">ลากรูปในพรีวิวเพื่อเลื่อน · ล้อเมาส์เพื่อซูม · ดับเบิลคลิกเพื่อรีเซ็ต</div>
+<div class="row"><button id="sr">รีเซ็ตรูปนี้</button><button id="sw">แทนที่รูปนี้…</button></div></div>
+<div class="row"><button class="p" id="pdf">⬇ PDF</button><button class="p" id="doc">⬇ Word</button><button class="p" id="jpg">⬇ JPEG</button></div>
+<div class="row"><button id="srt">เรียงตามชื่อ</button><button id="clr">ล้างคำบรรยาย</button><button id="rm">ลบรูปทั้งหมด</button></div>
+<div style="font-size:12px;color:var(--mu)">จัดลำดับ: ลากภาพย่อสลับตำแหน่ง หรือกด ▲▼ / พิมพ์เลขลำดับในแผงปรับรูป</div><div id="list" style="display:flex;flex-direction:column;gap:5px"></div>
+</aside><main id="prev"></main></div>
+<script>
+const $=id=>document.getElementById(id),PT=.3528,FONT="Sarabun,'TH Sarabun New',sans-serif";
+const PAPER={A4:[210,297],A3:[297,420],F4:[215,330],Letter:[216,279]};
+const PRE=[[2,3,'p'],[2,2,'p'],[1,2,'p'],[1,1,'p'],[3,3,'p'],[2,1,'l'],[3,2,'l'],[4,2,'l']];
+let photos=[],drag=-1,raf,sel=-1;
+const cfg=()=>{const l=$('orient').value=='l',[w,h]=PAPER[$('paper').value],n=id=>+$(id).value;return{W:l?h:w,H:l?w:h,m:n('margin'),gap:n('gap'),c:Math.max(1,n('cols')),r:Math.max(1,n('rows')),cap:$('cap').value=='1',fs:n('fs'),fit:$('fit').value,num:$('num').checked,pg:$('pg').checked,title:$('title').value.trim()}};
+function lay(c){const th=c.title?12:0,capH=c.cap?2*c.fs*PT*1.3+1.6:0,per=c.c*c.r;return{th,capH,per,cw:(c.W-2*c.m-c.gap*(c.c-1))/c.c,ch:(c.H-2*c.m-th-c.gap*(c.r-1))/c.r,pages:Math.max(1,Math.ceil(photos.length/per))}}
+function geo(im,W,H,mode,z){let w,h;if(mode=='stretch'){w=W;h=H}else{const s=(mode=='fill'?Math.max:Math.min)(W/im.width,H/im.height);w=im.width*s;h=im.height*s}return[w*(z||1),h*(z||1)]}
+function fitDraw(x,im,X,Y,W,H,mode,z,ox,oy){const[w,h]=geo(im,W,H,mode,z);x.drawImage(im,X+(W-w)/2+(ox||0)*W,Y+(H-h)/2+(oy||0)*H,w,h)}
+function clampP(p,c,L){const bh=L.ch-L.capH,[w,h]=geo(p.img,L.cw,bh,p.m||c.fit,p.z),mx=Math.max(0,w-L.cw)/2/L.cw,my=Math.max(0,h-bh)/2/bh;p.ox=Math.max(-mx,Math.min(mx,p.ox||0));p.oy=Math.max(-my,Math.min(my,p.oy||0))}
+function at(e,cv,pi){const c=cfg(),L=lay(c),r=cv.getBoundingClientRect(),X=(e.clientX-r.left)/r.width*c.W-c.m,Y=(e.clientY-r.top)/r.height*c.H-c.m-L.th;if(X<0||Y<0)return -1;const col=Math.floor(X/(L.cw+c.gap)),row=Math.floor(Y/(L.ch+c.gap));if(col>=c.c||row>=c.r||X-col*(L.cw+c.gap)>L.cw||Y-row*(L.ch+c.gap)>L.ch-L.capH)return -1;const i=pi*L.per+row*c.c+col;return photos[i]?i:-1}
+function hit(e,cv,pi){const c=cfg(),L=lay(c),i=at(e,cv,pi);if(i<0){if(sel>=0){sel=-1;panel();paint()}return}sel=i;panel();paint();const p=photos[i],x0=e.clientX,y0=e.clientY,o=p.ox,q=p.oy,pw=cv.getBoundingClientRect().width/c.W;cv.setPointerCapture(e.pointerId);cv.onpointermove=ev=>{p.ox=o+(ev.clientX-x0)/(L.cw*pw);p.oy=q+(ev.clientY-y0)/((L.ch-L.capH)*pw);clampP(p,c,L);$('sx').value=p.ox*100;$('sy').value=p.oy*100;paint()};cv.onpointerup=()=>{cv.onpointermove=cv.onpointerup=null}}
+function wheel(e,cv,pi){const i=at(e,cv,pi);if(i<0)return;e.preventDefault();sel=i;panel();upd(p=>p.z=Math.min(5,Math.max(1,(p.z||1)*(e.deltaY<0?1.1:1/1.1))))}
+function panel(){const p=photos[sel],e=$('sp');e.hidden=!p;if(!p)return;$('spt').textContent='ปรับรูปที่ '+(sel+1);$('sz').value=p.z*100;$('sx').value=p.ox*100;$('sy').value=p.oy*100;$('sm').value=p.m;$('so').max=photos.length;$('so').value=sel+1}
+function upd(f){const p=photos[sel];if(!p)return;f(p);const c=cfg();clampP(p,c,lay(c));$('sx').value=p.ox*100;$('sy').value=p.oy*100;$('sz').value=p.z*100;paint()}
+function wrap(x,t,mw){const sg=window.Intl&&Intl.Segmenter?[...new Intl.Segmenter('th',{granularity:'word'}).segment(t)].map(s=>s.segment):[...t],o=[];let l='';for(const s of sg){if(l&&x.measureText(l+s).width>mw){o.push(l.trimEnd());l=s.trimStart()}else l+=s}if(l)o.push(l);return o}
+function draw(cv,c,pi,k,sel){const L=lay(c);cv.width=c.W*k;cv.height=c.H*k;const x=cv.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,cv.width,cv.height);x.fillStyle='#000';x.textBaseline='top';x.textAlign='center';
+if(c.title){x.font=`700 ${18*PT*k}px ${FONT}`;x.fillText(c.title,c.W/2*k,c.m*k)}
+for(let j=0;j<L.per;j++){const i=pi*L.per+j,p=photos[i],X=(c.m+(j%c.c)*(L.cw+c.gap))*k,Y=(c.m+L.th+Math.floor(j/c.c)*(L.ch+c.gap))*k,w=L.cw*k,h=(L.ch-L.capH)*k;
+if(!p){if(photos.length)break;x.strokeStyle='#ccc';x.setLineDash([6,4]);x.strokeRect(X,Y,w,h);x.setLineDash([]);continue}
+clampP(p,c,L);x.save();x.beginPath();x.rect(X,Y,w,h);x.clip();fitDraw(x,p.img,X,Y,w,h,p.m||c.fit,p.z,p.ox,p.oy);x.restore();x.strokeStyle='#999';x.lineWidth=.2*k;x.strokeRect(X,Y,w,h);if(i===sel){x.strokeStyle='#2563eb';x.lineWidth=.8*k;x.strokeRect(X,Y,w,h)}
+if(c.cap){x.fillStyle='#000';x.font=`${c.fs*PT*k}px ${FONT}`;const lh=c.fs*PT*1.3*k;wrap(x,(c.num?`รูปที่ ${i+1} `:'')+p.cap,w).slice(0,2).forEach((s,n)=>x.fillText(s,X+w/2,Y+h+.8*k+n*lh))}}
+if(c.pg){x.fillStyle='#555';x.font=`${10*PT*k}px ${FONT}`;x.fillText(`หน้า ${pi+1} / ${L.pages}`,c.W/2*k,(c.H-c.m/2-1.5)*k)}}
+function render(){const c=cfg(),L=lay(c),m=$('prev');m.innerHTML='';for(let i=0;i<L.pages;i++){const cv=document.createElement('canvas');draw(cv,c,i,5,sel);cv.style.width=c.W*$('zoom').value+'px';cv.onpointerdown=e=>hit(e,cv,i);cv.onwheel=e=>wheel(e,cv,i);cv.ondblclick=e=>{const j=at(e,cv,i);if(j>=0){sel=j;panel();upd(p=>{p.z=1;p.ox=0;p.oy=0;p.m=''})}};m.append(cv)}}
+function paint(){const c=cfg();document.querySelectorAll('#prev canvas').forEach((cv,i)=>draw(cv,c,i,5,sel))}
+const R=()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(render)};
+function mv(i,j){j=Math.max(0,Math.min(photos.length-1,j));if(i==j)return;photos.splice(j,0,photos.splice(i,1)[0]);list();sel=j;panel();R()}
+function list(){sel=-1;panel();const l=$('list');l.innerHTML='';photos.forEach((p,i)=>{const d=document.createElement('div');d.className='it';d.draggable=true;d.innerHTML=`<b>${i+1}</b><img src="${p.url}"><input><button title="ลบ">✕</button><button title="แทนที่รูป">⟳</button><button title="เลื่อนขึ้น">▲</button><button title="เลื่อนลง">▼</button>`;const inp=d.querySelector('input');inp.value=p.cap;inp.placeholder='คำบรรยาย';inp.oninput=()=>{p.cap=inp.value;R()};d.querySelector('button').onclick=()=>{photos.splice(i,1);list();R()};
+d.querySelector('img').onclick=()=>{sel=i;panel();paint()};d.querySelectorAll('button')[1].onclick=()=>repl(p);d.querySelectorAll('button')[2].onclick=()=>mv(i,i-1);d.querySelectorAll('button')[3].onclick=()=>mv(i,i+1);d.ondragstart=()=>drag=i;d.ondragover=e=>{e.preventDefault();d.classList.add('ov')};d.ondragleave=()=>d.classList.remove('ov');d.ondrop=e=>{e.preventDefault();e.stopPropagation();if(drag>=0&&drag!=i)mv(drag,i);drag=-1};l.append(d)})}
+async function proc(f){const b=await createImageBitmap(f),s=Math.min(1,1600/Math.max(b.width,b.height)),cv=document.createElement('canvas');cv.width=Math.round(b.width*s);cv.height=Math.round(b.height*s);cv.getContext('2d').drawImage(b,0,0,cv.width,cv.height);const bl=await new Promise(r=>cv.toBlob(r,'image/jpeg',.88));return{img:cv,n:f.name.replace(/\.[^.]+$/,''),url:URL.createObjectURL(bl)}}
+async function add(files){$('drop').firstChild.textContent='กำลังประมวลผลรูป… ';for(const f of files){if(!f.type.startsWith('image/'))continue;try{const r=await proc(f);photos.push({...r,cap:r.n,z:1,ox:0,oy:0,m:''})}catch(e){}}
+$('drop').firstChild.textContent='ลากรูปมาวางที่นี่ หรือคลิกเพื่อเลือกรูป';list();R()}
+$('file').onchange=e=>{add([...e.target.files]);e.target.value=''};
+addEventListener('dragover',e=>{if(e.dataTransfer.types.includes('Files')){e.preventDefault();$('drop').classList.add('on')}});
+addEventListener('dragleave',e=>{if(!e.relatedTarget)$('drop').classList.remove('on')});
+addEventListener('drop',e=>{$('drop').classList.remove('on');if(e.dataTransfer.files.length){e.preventDefault();add([...e.dataTransfer.files])}});
+document.querySelectorAll('aside .g input,aside .g select,.c input').forEach(e=>e.oninput=R);
+PRE.forEach(([c,r,o])=>{const b=document.createElement('button');b.textContent=`${c}×${r}${o=='l'?' ↔':' ↕'}`;b.onclick=()=>{$('cols').value=c;$('rows').value=r;$('orient').value=o;R()};$('pre').append(b)});
+$('srt').onclick=()=>{photos.sort((a,b)=>a.n.localeCompare(b.n,undefined,{numeric:true}));list();R()};
+$('clr').onclick=()=>{photos.forEach(p=>p.cap='');list();R()};
+$('rm').onclick=()=>{if(photos.length&&confirm('ลบรูปทั้งหมด?')){photos=[];list();R()}};
+async function save(name,blob){let d=null;try{d=window.claude&&await claude.use('downloads')}catch(e){}
+if(d){try{await d.save({filename:name,data:blob})}catch(e){if(e.code!='declined')alert('บันทึกไฟล์ไม่สำเร็จ: '+(e.message||e.code))}}else{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click()}}
+async function busy(b,f){if(!photos.length)return alert('ยังไม่มีรูป');const t=b.textContent;b.textContent='กำลังสร้าง…';b.disabled=true;try{await f()}catch(e){alert('เกิดข้อผิดพลาด: '+e.message)}b.textContent=t;b.disabled=false}
+$('pdf').onclick=e=>busy(e.target,async()=>{const c=cfg(),L=lay(c),o=c.W>c.H?'l':'p',d=new jspdf.jsPDF({orientation:o,unit:'mm',format:[c.W,c.H]});for(let i=0;i<L.pages;i++){const cv=document.createElement('canvas');draw(cv,c,i,8);if(i)d.addPage([c.W,c.H],o);d.addImage(cv.toDataURL('image/jpeg',.92),'JPEG',0,0,c.W,c.H);await new Promise(r=>setTimeout(r))}await save('รายงานภาพ.pdf',d.output('blob'))});
+$('jpg').onclick=e=>busy(e.target,async()=>{const c=cfg(),L=lay(c),fs=[];for(let i=0;i<L.pages;i++){const cv=document.createElement('canvas');draw(cv,c,i,8);fs.push(await new Promise(r=>cv.toBlob(r,'image/jpeg',.92)))}
+if(fs.length==1)return save('รายงานภาพ.jpg',fs[0]);const z=new JSZip();fs.forEach((b,i)=>z.file('รายงานภาพ-หน้า'+(i+1)+'.jpg',b));await save('รายงานภาพ-JPEG.zip',await z.generateAsync({type:'blob'}))});
+function cellImg(p,w,h,fit){const k=6,cv=document.createElement('canvas');cv.width=w*k;cv.height=h*k;const x=cv.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,cv.width,cv.height);fitDraw(x,p.img,0,0,cv.width,cv.height,p.m||fit,p.z,p.ox,p.oy);x.strokeStyle='#999';x.lineWidth=.2*k;x.strokeRect(0,0,cv.width,cv.height);return new Promise(r=>cv.toBlob(async b=>r(await b.arrayBuffer()),'image/jpeg',.9))}
+$('doc').onclick=e=>busy(e.target,async()=>{const D=docx,c=cfg(),L=lay(c),tw=m=>Math.round(m*56.7),px=m=>m*3.7795,NB={style:D.BorderStyle.NONE,size:0,color:'auto'},F='TH Sarabun New',secs=[];
+for(let pi=0;pi<L.pages;pi++){const rows=[],bh=L.ch-L.capH;
+for(let r=0;r<c.r;r++){const cells=[];for(let q=0;q<c.c;q++){const i=pi*L.per+r*c.c+q,p=photos[i],kids=[];
+if(p){kids.push(new D.Paragraph({alignment:'center',spacing:{before:0,after:0},children:[new D.ImageRun({data:await cellImg(p,L.cw,bh,c.fit),transformation:{width:px(L.cw),height:px(bh)}})]}));
+if(c.cap)kids.push(new D.Paragraph({alignment:'center',spacing:{before:40,after:0},children:[new D.TextRun({text:(c.num?`รูปที่ ${i+1} `:'')+p.cap,font:F,size:c.fs*2})]}))}else kids.push(new D.Paragraph(''));
+const g=tw(c.gap/2);cells.push(new D.TableCell({width:{size:tw(L.cw+c.gap),type:D.WidthType.DXA},margins:{top:g,bottom:g,left:g,right:g},children:kids}))}
+rows.push(new D.TableRow({height:{value:Math.floor(tw(L.ch+c.gap)*.98),rule:D.HeightRule.EXACT},children:cells}))}
+const kids=[];if(c.title)kids.push(new D.Paragraph({alignment:'center',spacing:{line:tw(L.th),lineRule:D.LineRuleType.EXACT},children:[new D.TextRun({text:c.title,font:F,bold:true,size:36})]}));
+kids.push(new D.Table({width:{size:tw((L.cw+c.gap)*c.c),type:D.WidthType.DXA},columnWidths:Array(c.c).fill(tw(L.cw+c.gap)),layout:D.TableLayoutType.FIXED,borders:{top:NB,bottom:NB,left:NB,right:NB,insideHorizontal:NB,insideVertical:NB},rows}),new D.Paragraph({spacing:{line:20,lineRule:D.LineRuleType.EXACT}}));
+const mg=Math.max(0,c.m-c.gap/2);
+secs.push({properties:{page:{size:{width:tw(Math.min(c.W,c.H)),height:tw(Math.max(c.W,c.H)),orientation:c.W>c.H?D.PageOrientation.LANDSCAPE:D.PageOrientation.PORTRAIT},margin:{top:tw(c.m),bottom:tw(c.m),left:tw(mg),right:tw(mg),footer:tw(3)}}},
+footers:{default:new D.Footer({children:[new D.Paragraph({alignment:'center',children:c.pg?[new D.TextRun({children:['หน้า ',D.PageNumber.CURRENT,' / ',D.PageNumber.TOTAL_PAGES],font:F,size:20})]:[]})]})},children:kids})}
+await save('รายงานภาพ.docx',await D.Packer.toBlob(new D.Document({sections:secs})))});
+$('sz').oninput=()=>upd(p=>p.z=$('sz').value/100);$('sx').oninput=()=>upd(p=>p.ox=$('sx').value/100);$('sy').oninput=()=>upd(p=>p.oy=$('sy').value/100);$('sm').onchange=()=>upd(p=>p.m=$('sm').value);$('sr').onclick=()=>upd(p=>{p.z=1;p.ox=0;p.oy=0;p.m=''});
+const rf=document.createElement('input');rf.type='file';rf.accept='image/*';let rp=null;
+rf.onchange=async()=>{const f=rf.files[0],p=rp;rf.value='';if(!f||!p)return;try{const r=await proc(f),same=p.cap===p.n;URL.revokeObjectURL(p.url);Object.assign(p,{img:r.img,url:r.url,n:r.n,z:1,ox:0,oy:0});if(same)p.cap=r.n;const k=photos.indexOf(p);list();sel=k;panel();R()}catch(e){alert('เปิดรูปไม่ได้')}};
+function repl(p){rp=p;rf.click()}
+$('so').onchange=()=>{const v=parseInt($('so').value);if(v>0&&sel>=0)mv(sel,v-1)};
+$('sw').onclick=()=>repl(photos[sel]);
+render();document.fonts.load('400 16px Sarabun').then(()=>document.fonts.load('700 16px Sarabun')).then(R);
+</script></body></html>
